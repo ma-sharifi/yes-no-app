@@ -2,9 +2,10 @@
 """Render marketing-style mockups of the Yes / No app screen.
 
 These are NOT iOS Simulator captures (this build host has no macOS/Xcode).
-They are faithful renders of the same design the SwiftUI code produces:
-system green / red capsule buttons, a centered prompt-or-result, the real
-localized strings, and automatic right-to-left mirroring for RTL languages.
+They are faithful renders of the same design the SwiftUI code produces: two
+full-screen halves — a green "Yes" on top and a red "No" on the bottom — with
+a small "Tap to decide" prompt chip on the divider, the real localized
+strings, and automatic right-to-left mirroring for RTL languages.
 
 Requires Pillow built with raqm (complex text shaping + bidi).
 """
@@ -19,87 +20,79 @@ CJK = "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
 
 # --- Palette (Apple system colors, light mode) ------------------------------
 BG = (242, 242, 247)
-SCREEN = (255, 255, 255)
 BEZEL = (28, 28, 30)
 GREEN = (52, 199, 89)
 RED = (255, 59, 48)
 WHITE = (255, 255, 255)
-PRIMARY = (28, 28, 30)
-SECONDARY = (142, 142, 147)
 ISLAND = (10, 10, 12)
+CHIP = (0, 0, 0)
 
 SCALE = 3  # supersample then downscale for crisp anti-aliasing
-
-# Logical screen size (points), roughly an iPhone aspect ratio.
-W, H = 300, 640
+W, H = 300, 640  # logical screen size (points)
 
 
 def font(path, size):
     return ImageFont.truetype(path, size * SCALE)
 
 
-def rounded(draw, box, radius, fill):
-    draw.rounded_rectangle([c * SCALE for c in box], radius=radius * SCALE, fill=fill)
-
-
-def center_text(draw, cx, cy, text, fnt, fill, rtl=False):
-    kw = {}
-    if rtl:
-        kw = dict(direction="rtl", language="ar")
+def center_text(draw, cx, cy, text, fnt, fill, rtl=False, anchor=None):
+    kw = dict(direction="rtl", language="ar") if rtl else {}
     bbox = draw.textbbox((0, 0), text, font=fnt, **kw)
-    w = bbox[2] - bbox[0]
-    h = bbox[3] - bbox[1]
+    w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw.text((cx * SCALE - w / 2 - bbox[0], cy * SCALE - h / 2 - bbox[1]),
               text, font=fnt, fill=fill, **kw)
 
 
-def render(filename, *, prompt, yes, no, result=None, font_path=LATIN, rtl=False):
+def render(filename, *, prompt, yes, no, font_path=LATIN, rtl=False):
     img = Image.new("RGB", (W * SCALE, H * SCALE), BG)
     d = ImageDraw.Draw(img)
 
-    # Phone bezel + screen
-    rounded(d, (10, 10, W - 10, H - 10), 46, BEZEL)
-    rounded(d, (16, 16, W - 16, H - 16), 40, SCREEN)
+    sx0, sy0, sx1, sy1 = 16, 16, W - 16, H - 16
+    mid = (sy0 + sy1) / 2
+    radius = 40
 
-    # Dynamic Island
-    rounded(d, (W / 2 - 32, 30, W / 2 + 32, 48), 9, ISLAND)
+    # Phone bezel
+    d.rounded_rectangle([c * SCALE for c in (10, 10, W - 10, H - 10)],
+                        radius=46 * SCALE, fill=BEZEL)
 
-    # Center area: large result if chosen, else the prompt.
-    if result is not None:
-        center_text(d, W / 2, H * 0.40, result, font(font_path, 96), PRIMARY, rtl=rtl)
-    else:
-        prompt_font = font(font_path, 24 if not rtl else 22)
-        center_text(d, W / 2, H * 0.40, prompt, prompt_font, SECONDARY, rtl=rtl)
+    # Top half = green "Yes" (round only the top screen corners).
+    d.rounded_rectangle([c * SCALE for c in (sx0, sy0, sx1, mid)],
+                        radius=radius * SCALE, fill=GREEN,
+                        corners=(True, True, False, False))
+    # Bottom half = red "No" (round only the bottom screen corners).
+    d.rounded_rectangle([c * SCALE for c in (sx0, mid, sx1, sy1)],
+                        radius=radius * SCALE, fill=RED,
+                        corners=(False, False, True, True))
 
-    # Two full-width capsule buttons near the bottom.
-    pad = 30
-    btn_h = 70
-    gap = 18
-    y_no_top = H - 40 - btn_h
-    y_yes_top = y_no_top - gap - btn_h
-    label_font = font(font_path, 34)
+    label = font(font_path, 62)
+    center_text(d, W / 2, (sy0 + mid) / 2, yes, label, WHITE, rtl=rtl)
+    center_text(d, W / 2, (mid + sy1) / 2, no, label, WHITE, rtl=rtl)
 
-    rounded(d, (pad, y_yes_top, W - pad, y_yes_top + btn_h), btn_h / 2, GREEN)
-    center_text(d, W / 2, y_yes_top + btn_h / 2, yes, label_font, WHITE, rtl=rtl)
+    # "Tap to decide" chip on the divider.
+    chip_font = font(font_path, 15 if not rtl else 14)
+    kw = dict(direction="rtl", language="ar") if rtl else {}
+    bbox = d.textbbox((0, 0), prompt, font=chip_font, **kw)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    px, py = 14, 9
+    cw, ch = tw / SCALE + px * 2, th / SCALE + py * 2
+    d.rounded_rectangle(
+        [c * SCALE for c in (W / 2 - cw / 2, mid - ch / 2, W / 2 + cw / 2, mid + ch / 2)],
+        radius=(ch / 2) * SCALE, fill=CHIP)
+    center_text(d, W / 2, mid, prompt, chip_font, WHITE, rtl=rtl)
 
-    rounded(d, (pad, y_no_top, W - pad, y_no_top + btn_h), btn_h / 2, RED)
-    center_text(d, W / 2, y_no_top + btn_h / 2, no, label_font, WHITE, rtl=rtl)
+    # Dynamic Island (drawn last so it sits above the green).
+    d.rounded_rectangle([c * SCALE for c in (W / 2 - 32, 30, W / 2 + 32, 48)],
+                        radius=9 * SCALE, fill=ISLAND)
 
     img = img.resize((W * 2, H * 2), Image.LANCZOS)
     img.save(filename)
     print("wrote", filename)
 
 
-render("docs/screenshots/en.png",
-       prompt="Tap to decide", yes="Yes", no="No")
-
-render("docs/screenshots/ar.png",
-       prompt="اضغط لتقرر", yes="نعم", no="لا",
-       result="نعم", font_path=ARABIC, rtl=True)
-
-render("docs/screenshots/fa.png",
-       prompt="برای تصمیم‌گیری ضربه بزنید", yes="بله", no="خیر",
+render("docs/screenshots/en.png", prompt="Tap to decide", yes="Yes", no="No")
+render("docs/screenshots/ar.png", prompt="اضغط لتقرر", yes="نعم", no="لا",
        font_path=ARABIC, rtl=True)
-
-render("docs/screenshots/zh-Hans.png",
-       prompt="点击以决定", yes="是", no="否", font_path=CJK)
+render("docs/screenshots/fa.png", prompt="برای تصمیم‌گیری ضربه بزنید",
+       yes="بله", no="خیر", font_path=ARABIC, rtl=True)
+render("docs/screenshots/zh-Hans.png", prompt="点击以决定", yes="是", no="否",
+       font_path=CJK)

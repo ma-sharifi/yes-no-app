@@ -1,78 +1,84 @@
 import SwiftUI
 import UIKit
 
-/// The single screen of the app: a localized prompt and two big pill buttons.
+/// The single screen of the app: two full-screen buttons split top/bottom —
+/// a green **Yes** filling the upper half and a red **No** filling the lower
+/// half. Tapping a half plays that button's sound, fires haptic feedback, and
+/// animates the press.
 ///
-/// All user-facing text is pulled from `Localizable.xcstrings`. Layout direction
+/// All user-facing text comes from `Localizable.xcstrings`. Layout direction
 /// (including the right-to-left flip for Arabic and Persian) is handled
-/// automatically by SwiftUI based on the active locale, so there is nothing
-/// RTL-specific to do here.
+/// automatically by SwiftUI based on the active locale.
 struct ContentView: View {
-    /// The localized word the user just chose, or `nil` before any tap.
-    @State private var choice: LocalizedStringKey?
+    /// Whether the user has tapped yet — used to hide the prompt after the
+    /// first choice.
+    @State private var hasChosen = false
 
     var body: some View {
-        VStack(spacing: 40) {
-            Spacer()
-
-            // Shows the prompt until a choice is made, then the chosen word large.
-            Text(choice ?? "Tap to decide")
-                .font(.system(size: choice == nil ? 28 : 80,
-                              weight: .bold,
-                              design: .rounded))
-                .foregroundStyle(choice == nil ? .secondary : .primary)
-                .multilineTextAlignment(.center)
-                .contentTransition(.opacity)
-                .animation(.snappy, value: stateID)
-                .padding(.horizontal, 24)
-
-            Spacer()
-
-            VStack(spacing: 16) {
-                DecisionButton(title: "Yes", color: .green) { choose("Yes") }
-                DecisionButton(title: "No", color: .red) { choose("No") }
+        ZStack {
+            VStack(spacing: 0) {
+                HalfButton(title: "Yes", color: .green, sound: "yes") { choose() }
+                HalfButton(title: "No", color: .red, sound: "no") { choose() }
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 32)
+            .ignoresSafeArea()
+
+            // A small prompt chip on the divider, shown until the first tap.
+            if !hasChosen {
+                Text("Tap to decide")
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+                    .background(.black.opacity(0.35), in: Capsule())
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeOut(duration: 0.25), value: hasChosen)
     }
 
-    /// Drives the prompt/result animation. `LocalizedStringKey` isn't `Equatable`
-    /// in a way we can animate on directly, so we animate on a derived flag.
-    private var stateID: Bool { choice != nil }
-
-    private func choose(_ value: LocalizedStringKey) {
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        choice = value
+    private func choose() {
+        if !hasChosen { hasChosen = true }
     }
 }
 
-/// A full-width rounded "pill" button with a press scale/opacity animation.
-private struct DecisionButton: View {
+/// One half of the screen: a solid color filling its space, a big centered
+/// label, its own sound, haptic feedback, and a press animation.
+private struct HalfButton: View {
     let title: LocalizedStringKey
     let color: Color
-    let action: () -> Void
+    let sound: String
+    let onChoose: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 22)
-                .background(color, in: Capsule())
+        Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            SoundPlayer.shared.play(sound)
+            onChoose()
+        } label: {
+            ZStack {
+                color
+                Text(title)
+                    .font(.system(size: 96, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+                    .padding(.horizontal, 24)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(PressStyle())
+        .buttonStyle(HalfPressStyle())
     }
 }
 
-/// Press feedback shared by both buttons.
-private struct PressStyle: ButtonStyle {
+/// Darkens and slightly shrinks the tapped half while the finger is down.
+private struct HalfPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6),
+            .brightness(configuration.isPressed ? -0.08 : 0)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7),
                        value: configuration.isPressed)
     }
 }
