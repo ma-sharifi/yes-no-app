@@ -1,0 +1,2 @@
+app_identifier("com.masharifi.YesNo") # change to a bundle id you own
+# apple_id and team are supplied in CI via the App Store Connect API key.

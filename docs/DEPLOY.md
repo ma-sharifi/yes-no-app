@@ -88,22 +88,56 @@ day or two.
 
 ---
 
-### Optional: automate with Fastlane
+## Automated publishing via GitHub Actions (no Mac needed by you)
 
-If you'll release often, [Fastlane](https://fastlane.tools) automates steps
-3–4 and 6. A minimal `fastlane/Fastfile`:
+This repo includes a working CI pipeline that builds, signs, and uploads the
+app to App Store Connect from a GitHub-hosted **macOS runner**:
 
-```ruby
-default_platform(:ios)
+- `.github/workflows/deploy-appstore.yml` — runs on `workflow_dispatch` (the
+  Actions tab) or when you push a `v*` tag.
+- `fastlane/Fastfile` — the `release` lane that builds and uploads.
 
-platform :ios do
-  desc "Build and upload to App Store Connect"
-  lane :release do
-    increment_build_number(xcodeproj: "YesNo.xcodeproj")
-    build_app(scheme: "YesNo")
-    upload_to_app_store(submit_for_review: false)
-  end
-end
-```
+You never touch a Mac; you only provide credentials **once**, as encrypted
+GitHub repo secrets. The pipeline uploads the binary to App Store Connect,
+where it appears in TestFlight; you then click **Submit for Review** in the
+App Store Connect UI (step 6 above) — Apple requires that final action to be
+done by a human under your account.
 
-Run with `fastlane release` on your Mac (after `fastlane init`).
+### One-time setup
+
+1. **Apple Developer account** + an app record created in App Store Connect
+   (steps 0–2 above), using a bundle id you own. Update `app_identifier` in
+   `fastlane/Appfile` and `PRODUCT_BUNDLE_IDENTIFIER` if you change it.
+
+2. **App Store Connect API key** — App Store Connect → Users and Access →
+   **Integrations / Keys** → generate a key with **App Manager** access.
+   Download the `.p8` once.
+
+3. **Distribution certificate** — export your Apple Distribution certificate
+   (with its private key) from Keychain Access as a `.p12` with a password.
+   (If you don't have one, create it at developer.apple.com → Certificates.)
+
+4. **Add repo secrets** — GitHub repo → Settings → Secrets and variables →
+   Actions → **New repository secret**, for each of:
+
+   | Secret | Value |
+   | --- | --- |
+   | `ASC_KEY_ID` | The API key's Key ID |
+   | `ASC_ISSUER_ID` | The API key's Issuer ID |
+   | `ASC_KEY_CONTENT` | The `.p8` file contents, base64-encoded: `base64 -i AuthKey_XXX.p8 \| pbcopy` |
+   | `BUILD_CERTIFICATE_BASE64` | The `.p12`, base64-encoded: `base64 -i cert.p12 \| pbcopy` |
+   | `P12_PASSWORD` | The password you set when exporting the `.p12` |
+   | `KEYCHAIN_PASSWORD` | Any string — a temporary keychain password for the runner |
+   | `DEVELOPMENT_TEAM` | Your 10-character Team ID |
+
+### Run it
+
+- GitHub → **Actions** → **Deploy to App Store** → **Run workflow**, or
+- `git tag v1.0.0 && git push origin v1.0.0`.
+
+The build lands in TestFlight within a few minutes of the run finishing. From
+App Store Connect you can test it, attach it to your App Store version, and
+submit for review.
+
+> Want to run it locally on a Mac instead? Set the same values as environment
+> variables and run `fastlane release` from the repo root.

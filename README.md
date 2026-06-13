@@ -112,6 +112,14 @@ account. In short:
 5. **App Store Connect** — create the app record, add real device screenshots,
    declare "Data Not Collected", and submit for review.
 
+**Prefer not to touch a Mac?** The repo includes a GitHub Actions pipeline
+(`.github/workflows/deploy-appstore.yml` + `fastlane/`) that builds, signs, and
+uploads to App Store Connect from a hosted macOS runner. You add your Apple
+credentials as encrypted repo secrets once, then trigger it from the Actions
+tab. Final "Submit for Review" is still a click you make in App Store Connect
+(Apple requires it). Full secret list and steps in
+[docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Project layout
 
 ```
