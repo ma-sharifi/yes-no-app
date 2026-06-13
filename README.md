@@ -93,20 +93,24 @@ In code, strings are referenced as `LocalizedStringKey` literals (e.g.
 
 That's it — no code changes are required to add a language.
 
-## Pre-App-Store checklist
+## Deploying to the App Store
 
-Before submitting to App Store Connect:
+Full step-by-step instructions are in **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+The actual upload must run on a Mac with Xcode and your Apple Developer
+account. In short:
 
-1. **App icon** — add a 1024×1024 px icon to
-   `YesNo/Assets.xcassets/AppIcon.appiconset` (the slot is already configured).
+1. **App icon** — a 1024×1024 icon is already included
+   (`YesNo/Assets.xcassets/AppIcon.appiconset/icon-1024.png`); regenerate it
+   with `python3 docs/make_icon.py` or replace it with your own.
 2. **Signing** — in **Signing & Capabilities**, set your **Team** and confirm
    the **bundle identifier** (`com.masharifi.YesNo`, change to your own if
    needed).
 3. **Version & build** — bump `MARKETING_VERSION` (e.g. `1.0`) and
    `CURRENT_PROJECT_VERSION` (e.g. `1`) for each submission.
-4. **Accent color** — adjust `AccentColor` in the asset catalog if you want a
-   different system tint.
-5. Archive (**Product → Archive**) and upload via the Organizer.
+4. **Archive & upload** — **Product → Archive** in Xcode, or use the
+   `xcodebuild` flow with [`docs/ExportOptions.plist`](docs/ExportOptions.plist).
+5. **App Store Connect** — create the app record, add real device screenshots,
+   declare "Data Not Collected", and submit for review.
 
 ## Project layout
 
