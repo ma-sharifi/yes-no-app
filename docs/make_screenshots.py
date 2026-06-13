@@ -21,8 +21,8 @@ CJK = "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
 # --- Palette (Apple system colors, light mode) ------------------------------
 BG = (242, 242, 247)
 BEZEL = (28, 28, 30)
-GREEN = (52, 199, 89)
-RED = (255, 59, 48)
+GREEN = (95, 198, 137)
+RED = (242, 107, 98)
 WHITE = (255, 255, 255)
 ISLAND = (10, 10, 12)
 CHIP = (0, 0, 0)

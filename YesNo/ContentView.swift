@@ -1,6 +1,13 @@
 import SwiftUI
 import UIKit
 
+extension Color {
+    /// Softened "yes" green (#5FC689) — gentler than the vivid system green.
+    static let yesGreen = Color(red: 95 / 255, green: 198 / 255, blue: 137 / 255)
+    /// Softened "no" red (#F26B62).
+    static let noRed = Color(red: 242 / 255, green: 107 / 255, blue: 98 / 255)
+}
+
 /// The single screen of the app: two full-screen buttons split top/bottom —
 /// a green **Yes** filling the upper half and a red **No** filling the lower
 /// half. Tapping a half plays that button's sound, fires haptic feedback, and
@@ -17,8 +24,8 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                HalfButton(title: "Yes", color: .green, sound: "yes") { choose() }
-                HalfButton(title: "No", color: .red, sound: "no") { choose() }
+                HalfButton(title: "Yes", color: .yesGreen, sound: "yes") { choose() }
+                HalfButton(title: "No", color: .noRed, sound: "no") { choose() }
             }
             .ignoresSafeArea()
 

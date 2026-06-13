@@ -7,8 +7,8 @@ corners itself) — which is exactly what App Store Connect requires.
 """
 from PIL import Image, ImageDraw
 
-GREEN = (52, 199, 89)
-RED = (255, 59, 48)
+GREEN = (95, 198, 137)
+RED = (242, 107, 98)
 WHITE = (255, 255, 255)
 
 S = 1024
