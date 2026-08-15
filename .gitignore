@@ -33,3 +33,6 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Graphify knowledge graph (regenerated from source; not committed)
+graphify-out/

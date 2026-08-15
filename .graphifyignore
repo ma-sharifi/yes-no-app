@@ -1,0 +1,19 @@
+# Files Graphify should not ingest when building the knowledge graph.
+# gitignore-style syntax; .gitignore is also respected automatically.
+
+# Generated graph artifacts
+graphify-out/
+
+# Version control & hooks
+.git/
+.githooks/
+
+# The graph service's own scaffolding (not application code)
+graphify/
+docker-compose.yml
+
+# Build / tooling output
+build/
+DerivedData/
+.build/
+.swiftpm/

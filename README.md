@@ -144,3 +144,28 @@ and `no.wav` (a lower descending tone), bundled in `YesNo/`. They use the
 `ambient` audio category, so they mix with other audio and respect the mute
 switch. Regenerate or tweak them with `python3 docs/make_sounds.py`, or replace
 the `.wav` files with your own (keep the `yes`/`no` names).
+
+## Knowledge graph (Graphify)
+
+This repo ships with its own queryable **code knowledge graph** via
+[Graphify](https://github.com/Graphify-Labs/graphify), packaged as a Docker
+Compose service so it travels with the project and can be dropped into any
+other repo. Graphify parses the source locally with tree-sitter (Swift
+included) — nothing leaves your machine — turning files, types, and functions
+into nodes with explained edges.
+
+```bash
+./scripts/setup-graphify.sh      # one-time: enable git hook, build image, first graph
+docker compose up -d graphify    # serve the graph at http://localhost:8080/mcp
+```
+
+After setup, the graph **rebuilds automatically on every `git commit`** (via a
+tracked `.githooks/post-commit` hook wired up with `core.hooksPath`). Outputs
+land in `graphify-out/` (`graph.json`, `graph.html`, `GRAPH_REPORT.md`) and are
+git-ignored. `.mcp.json` points Claude Code / Cursor at the served graph, and
+`.graphifyignore` controls what's excluded. Full details in
+[`graphify/README.md`](graphify/README.md).
+
+To reuse the setup elsewhere, copy `graphify/`, `docker-compose.yml`,
+`.graphifyignore`, `.githooks/`, `scripts/`, and `.mcp.json` into the other
+repo and run `./scripts/setup-graphify.sh` there.
