@@ -1,0 +1,32 @@
+# Prepares the GitHub Copilot coding agent's environment so it can search the
+# Graphify knowledge graph. GitHub runs the job named `copilot-setup-steps`
+# before the agent starts. See:
+# https://docs.github.com/en/copilot/customizing-copilot/customizing-the-development-environment-for-the-coding-agent
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Graphify
+        run: pipx install graphifyy
+
+      - name: Build the knowledge graph
+        run: graphify extract . --force
+
+      - name: Show graph report
+        run: cat graphify-out/GRAPH_REPORT.md || true

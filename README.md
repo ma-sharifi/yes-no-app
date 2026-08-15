@@ -148,24 +148,28 @@ the `.wav` files with your own (keep the `yes`/`no` names).
 ## Knowledge graph (Graphify)
 
 This repo ships with its own queryable **code knowledge graph** via
-[Graphify](https://github.com/Graphify-Labs/graphify), packaged as a Docker
-Compose service so it travels with the project and can be dropped into any
-other repo. Graphify parses the source locally with tree-sitter (Swift
-included) — nothing leaves your machine — turning files, types, and functions
-into nodes with explained edges.
+[Graphify](https://github.com/Graphify-Labs/graphify) — a map of every file,
+type, and function and how they connect. Graphify parses the source locally with
+tree-sitter (Swift included) — nothing leaves your machine. It's **CLI-based, no
+MCP server**, so it works in the Copilot coding agent and local editors alike.
 
 ```bash
-./scripts/setup-graphify.sh      # one-time: enable git hook, build image, first graph
-docker compose up -d graphify    # serve the graph at http://localhost:8080/mcp
+./scripts/setup-graphify.sh                       # one-time: enable hook + first build
+./scripts/graph-query.sh "what plays the sounds?" # search the graph
 ```
 
-After setup, the graph **rebuilds automatically on every `git commit`** (via a
-tracked `.githooks/post-commit` hook wired up with `core.hooksPath`). Outputs
-land in `graphify-out/` (`graph.json`, `graph.html`, `GRAPH_REPORT.md`) and are
-git-ignored. `.mcp.json` points Claude Code / Cursor at the served graph, and
-`.graphifyignore` controls what's excluded. Full details in
-[`graphify/README.md`](graphify/README.md).
+The graph **rebuilds automatically on every `git commit`** (a tracked
+`.githooks/post-commit` hook wired up with `core.hooksPath`). Outputs land in
+`graphify-out/` (`graph.json`, `graph.html`, `GRAPH_REPORT.md`) and are
+git-ignored.
 
-To reuse the setup elsewhere, copy `graphify/`, `docker-compose.yml`,
-`.graphifyignore`, `.githooks/`, `scripts/`, and `.mcp.json` into the other
-repo and run `./scripts/setup-graphify.sh` there.
+**Copilot searches it first.** [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
+tells the Copilot agent to run `./scripts/graph-query.sh "…"` before exploring
+code, so it finds the right files via the graph instead of a blind text search.
+The hosted Copilot coding agent gets Graphify preinstalled via
+[`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml).
+Full details in [`graphify/README.md`](graphify/README.md).
+
+To reuse elsewhere, copy `graphify/`, `docker-compose.yml`, `.graphifyignore`,
+`.githooks/`, `scripts/`, and the two `.github/` files into the other repo and
+run `./scripts/setup-graphify.sh`.

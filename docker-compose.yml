@@ -1,15 +1,14 @@
-# Project-local Graphify knowledge graph.
+# Project-local Graphify knowledge graph — CLI mode (no MCP server).
 #
-# Two services share one image (graphify/Dockerfile):
-#   • graphify        – long-running MCP server that serves the graph over HTTP.
-#                       This is the piece you ship / keep running.
-#   • graphify-build  – one-shot extractor that (re)generates graphify-out/.
-#                       Invoked by the post-commit hook and setup script.
+# One service, one image (graphify/Dockerfile), driven by the `graphify` CLI:
+#   • extract (default) — (re)generate graphify-out/ from the source.
+#         docker compose run --rm graphify
+#   • query             — search the graph in natural language.
+#         docker compose run --rm graphify query "what plays the tap sounds?"
 #
-# Quick start:
-#   docker compose run --rm graphify-build     # build the graph once
-#   docker compose up -d graphify              # serve it at :8080
-#   # MCP endpoint for AI assistants: http://localhost:8080/mcp
+# The post-commit hook runs the extract; scripts/graph-query.sh runs queries.
+# Semantic queries use an LLM if one of the *_API_KEY vars is set; plain code
+# structure queries work with no key at all.
 name: yes-no-app
 
 services:
@@ -17,23 +16,11 @@ services:
     build: ./graphify
     image: yes-no-app-graphify:latest
     working_dir: /workspace
-    command: ["graphify-out/graph.json", "--transport", "http", "--host", "0.0.0.0", "--port", "8080"]
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./:/workspace
-    restart: unless-stopped
-
-  graphify-build:
-    build: ./graphify
-    image: yes-no-app-graphify:latest
-    working_dir: /workspace
-    # Override the serving entrypoint to extract the graph from the whole repo.
-    # graphify respects .gitignore and .graphifyignore, and writes to
-    # graphify-out/ (graph.json, graph.html, GRAPH_REPORT.md).
     entrypoint: ["graphify"]
     command: ["extract", ".", "--force"]
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     volumes:
       - ./:/workspace
-    # Kept out of `docker compose up`; run explicitly via `docker compose run`.
-    profiles: ["build"]
