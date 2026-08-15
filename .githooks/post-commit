@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# post-commit: rebuild the Graphify knowledge graph after every commit so
+# graphify-out/ always reflects the code you just committed.
+#
+# This hook is version-controlled. Activate it once per clone with:
+#   git config core.hooksPath .githooks     (done by scripts/setup-graphify.sh)
+#
+# The rebuild is best-effort: if Docker isn't available or extraction fails,
+# the commit still succeeds.
+set -euo pipefail
+
+# Guard against re-entrancy (e.g. if a rebuild ever creates a commit).
+if [ -n "${GRAPHIFY_SKIP:-}" ]; then
+  exit 0
+fi
+
+ROOT="$(git rev-parse --show-toplevel)"
+exec "$ROOT/scripts/rebuild-graph.sh"

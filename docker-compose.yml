@@ -1,0 +1,39 @@
+# Project-local Graphify knowledge graph.
+#
+# Two services share one image (graphify/Dockerfile):
+#   • graphify        – long-running MCP server that serves the graph over HTTP.
+#                       This is the piece you ship / keep running.
+#   • graphify-build  – one-shot extractor that (re)generates graphify-out/.
+#                       Invoked by the post-commit hook and setup script.
+#
+# Quick start:
+#   docker compose run --rm graphify-build     # build the graph once
+#   docker compose up -d graphify              # serve it at :8080
+#   # MCP endpoint for AI assistants: http://localhost:8080/mcp
+name: yes-no-app
+
+services:
+  graphify:
+    build: ./graphify
+    image: yes-no-app-graphify:latest
+    working_dir: /workspace
+    command: ["graphify-out/graph.json", "--transport", "http", "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/workspace
+    restart: unless-stopped
+
+  graphify-build:
+    build: ./graphify
+    image: yes-no-app-graphify:latest
+    working_dir: /workspace
+    # Override the serving entrypoint to extract the graph from the whole repo.
+    # graphify respects .gitignore and .graphifyignore, and writes to
+    # graphify-out/ (graph.json, graph.html, GRAPH_REPORT.md).
+    entrypoint: ["graphify"]
+    command: ["extract", ".", "--force"]
+    volumes:
+      - ./:/workspace
+    # Kept out of `docker compose up`; run explicitly via `docker compose run`.
+    profiles: ["build"]
